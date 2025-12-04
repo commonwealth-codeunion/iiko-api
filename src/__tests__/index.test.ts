@@ -3,7 +3,7 @@ import {
   IikoAuthError,
   IikoClient,
   IikoRateLimitError,
-} from "./index.js";
+} from "../index.js";
 
 describe("Package exports", () => {
   it("should export IikoClient", () => {

@@ -1,6 +1,6 @@
 import nock from "nock";
-import { IikoClient } from "./client.js";
-import { IikoApiError, IikoAuthError, IikoRateLimitError } from "./errors.js";
+import { IikoClient } from "../client.js";
+import { IikoApiError, IikoAuthError, IikoRateLimitError } from "../errors.js";
 
 const BASE_URL = "https://api-ru.iiko.services";
 const TEST_API_KEY = "test-api-key-12345";
