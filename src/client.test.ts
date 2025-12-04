@@ -137,4 +137,68 @@ describe("IikoClient", () => {
       expect(client.getAccessToken()).toBe(TEST_TOKEN);
     });
   });
+
+  describe("getOrganizations", () => {
+    it("should throw if not authenticated", async () => {
+      const client = new IikoClient(TEST_API_KEY);
+
+      await expect(client.getOrganizations()).rejects.toThrow(
+        "Not authenticated"
+      );
+    });
+
+    it("should fetch organizations successfully", async () => {
+      const mockResponse = {
+        correlationId: "test-correlation-id",
+        organizations: [
+          { id: "org-1", name: "Restaurant 1" },
+          { id: "org-2", name: "Restaurant 2" },
+        ],
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, TEST_TOKEN);
+
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .matchHeader("Authorization", `Bearer ${TEST_TOKEN}`)
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(TEST_API_KEY);
+      await client.authenticate();
+
+      const result = await client.getOrganizations();
+
+      expect(result.correlationId).toBe("test-correlation-id");
+      expect(result.organizations).toHaveLength(2);
+      expect(result.organizations[0]?.name).toBe("Restaurant 1");
+    });
+
+    it("should pass request parameters", async () => {
+      const mockResponse = {
+        correlationId: "test-id",
+        organizations: [{ id: "org-1", name: "Test Org" }],
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, TEST_TOKEN);
+
+      nock(BASE_URL)
+        .post("/api/1/organizations", {
+          organizationIds: ["org-1"],
+          returnAdditionalInfo: true,
+          includeDisabled: false,
+        })
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(TEST_API_KEY);
+      await client.authenticate();
+
+      const result = await client.getOrganizations({
+        organizationIds: ["org-1"],
+        returnAdditionalInfo: true,
+        includeDisabled: false,
+      });
+
+      expect(result.organizations).toHaveLength(1);
+    });
+  });
 });

@@ -123,17 +123,6 @@ npm unlink iiko-api-wrapper
 npm unlink
 ```
 
-Alternatively, use `npm pack` for a more realistic installation test:
-
-```bash
-# In this package directory
-npm pack
-# Creates iiko-api-wrapper-1.0.0.tgz
-
-# In your other project
-npm install ../path/to/iiko-api-wrapper-1.0.0.tgz
-```
-
 ## License
 
 MIT

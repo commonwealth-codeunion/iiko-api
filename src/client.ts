@@ -3,6 +3,8 @@ import { IikoApiError, IikoAuthError, IikoRateLimitError } from "./errors.js";
 import type {
   ApiErrorResponse,
   AuthResponse,
+  GetOrganizationsRequest,
+  GetOrganizationsResponse,
   IikoClientOptions,
 } from "./types/index.js";
 
@@ -140,6 +142,34 @@ export class IikoClient {
     return {
       Authorization: `Bearer ${this.accessToken}`,
     };
+  }
+
+  // ==========================================================================
+  // Organizations API
+  // ==========================================================================
+
+  /**
+   * Get list of organizations available for the API key
+   *
+   * @param request - Optional request parameters
+   * @returns List of organizations
+   *
+   * @example
+   * ```typescript
+   * // Get all organizations
+   * const { organizations } = await client.getOrganizations();
+   *
+   * // Get specific organizations with additional info
+   * const { organizations } = await client.getOrganizations({
+   *   organizationIds: ['uuid-1', 'uuid-2'],
+   *   returnAdditionalInfo: true,
+   * });
+   * ```
+   */
+  public async getOrganizations(
+    request: GetOrganizationsRequest = {}
+  ): Promise<GetOrganizationsResponse> {
+    return this.post<GetOrganizationsResponse>("/api/1/organizations", request);
   }
 
   /**

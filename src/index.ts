@@ -5,7 +5,11 @@ export { IikoClient } from "./client.js";
 export type {
   ApiErrorResponse,
   AuthResponse,
+  // Organizations
+  GetOrganizationsRequest,
+  GetOrganizationsResponse,
   IikoClientOptions,
+  Organization,
 } from "./types/index.js";
 
 // Errors
