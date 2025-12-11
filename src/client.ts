@@ -82,7 +82,7 @@ export class IikoClient {
    *
    * @returns True if an access token is available
    */
-  public isAuthenticated(): boolean {
+  public get isAuthenticated(): boolean {
     return this.accessToken !== null;
   }
 

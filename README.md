@@ -1,17 +1,17 @@
-# iiko-api-wrapper
+# iiko-api
 
 A TypeScript wrapper for the [iiko API](https://api-ru.iiko.services/).
 
 ## Installation
 
 ```bash
-npm install iiko-api-wrapper
+npm install iiko-api
 ```
 
 ## Usage
 
 ```typescript
-import { IikoClient } from "iiko-api-wrapper";
+import { IikoClient } from "iiko-api";
 
 // Create a client instance with your API key
 const client = new IikoClient("your-api-key");
@@ -20,7 +20,7 @@ const client = new IikoClient("your-api-key");
 await client.authenticate();
 
 // Check authentication status
-console.log(client.isAuthenticated()); // true
+console.log(client.isAuthenticated); // true
 
 // Get the current access token if needed
 const token = client.getAccessToken();
@@ -45,7 +45,7 @@ import {
   IikoApiError,
   IikoAuthError,
   IikoRateLimitError,
-} from "iiko-api-wrapper";
+} from "iiko-api";
 
 try {
   await client.authenticate();
@@ -84,44 +84,7 @@ new IikoClient(apiKey: string, options?: IikoClientOptions)
 
 ## Development
 
-```bash
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Build
-npm run build
-```
-
-### Local Development with npm link
-
-To test the package locally in another project before publishing:
-
-```bash
-# In this package directory: build and create global symlink
-npm run build
-npm link
-
-# In your other project: link to this package
-npm link iiko-api-wrapper
-```
-
-Now you can import and use the package as if it were installed from npm.
-
-To unlink when done:
-
-```bash
-# In your other project
-npm unlink iiko-api-wrapper
-
-# In this package directory
-npm unlink
-```
+See [docs/Development.md](docs/Development.md) for development setup, testing, and contribution guidelines.
 
 ## License
 
