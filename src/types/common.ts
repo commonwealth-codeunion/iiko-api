@@ -20,6 +20,11 @@ export interface IikoClientOptions {
  */
 export interface AuthResponse {
   /**
+   * Correlation ID for the request
+   */
+  correlationId: string;
+
+  /**
    * JWT access token
    */
   token: string;

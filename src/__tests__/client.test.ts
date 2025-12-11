@@ -5,6 +5,7 @@ import { IikoApiError, IikoAuthError, IikoRateLimitError } from "../errors.js";
 const BASE_URL = process.env.IIKO_BASE_URL ?? "https://api-ru.iiko.services";
 const MOCK_API_KEY = "mock-api-key-12345";
 const MOCK_ACCESS_TOKEN = "mock-access-token-67890";
+const MOCK_CORRELATION_ID = "mock-correlation-id-12345";
 
 describe("IikoClient", () => {
   beforeAll(() => {
@@ -52,7 +53,10 @@ describe("IikoClient", () => {
     it("should authenticate successfully and store token", async () => {
       nock(BASE_URL)
         .post("/api/1/access_token", { apiLogin: MOCK_API_KEY })
-        .reply(200, MOCK_ACCESS_TOKEN);
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
 
       const client = new IikoClient(MOCK_API_KEY);
 
@@ -61,6 +65,7 @@ describe("IikoClient", () => {
       const result = await client.authenticate();
 
       expect(result.token).toBe(MOCK_ACCESS_TOKEN);
+      expect(result.correlationId).toBe(MOCK_CORRELATION_ID);
       expect(client.isAuthenticated).toBe(true);
       expect(client.getAccessToken()).toBe(MOCK_ACCESS_TOKEN);
     });
@@ -129,7 +134,12 @@ describe("IikoClient", () => {
     });
 
     it("should return token after authentication", async () => {
-      nock(BASE_URL).post("/api/1/access_token").reply(200, MOCK_ACCESS_TOKEN);
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
 
       const client = new IikoClient(MOCK_API_KEY);
       await client.authenticate();
@@ -156,7 +166,12 @@ describe("IikoClient", () => {
         ],
       };
 
-      nock(BASE_URL).post("/api/1/access_token").reply(200, MOCK_ACCESS_TOKEN);
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
 
       nock(BASE_URL)
         .post("/api/1/organizations", {})
@@ -179,7 +194,12 @@ describe("IikoClient", () => {
         organizations: [{ id: "org-1", name: "Test Org" }],
       };
 
-      nock(BASE_URL).post("/api/1/access_token").reply(200, MOCK_ACCESS_TOKEN);
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
 
       nock(BASE_URL)
         .post("/api/1/organizations", {

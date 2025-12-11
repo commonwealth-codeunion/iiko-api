@@ -67,14 +67,16 @@ export class IikoClient {
    * @throws {IikoAuthError} If authentication fails
    */
   public async authenticate(): Promise<AuthResponse> {
-    const response = await this.httpClient.post<string>("/api/1/access_token", {
-      apiLogin: this.apiKey,
-    });
+    const response = await this.httpClient.post<AuthResponse>(
+      "/api/1/access_token",
+      {
+        apiLogin: this.apiKey,
+      }
+    );
 
-    // iiko API returns the token as a plain string
-    this.accessToken = response.data;
+    this.accessToken = response.data.token;
 
-    return { token: this.accessToken };
+    return response.data;
   }
 
   /**
