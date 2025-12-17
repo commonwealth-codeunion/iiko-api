@@ -3,6 +3,10 @@ import { IikoApiError, IikoAuthError, IikoRateLimitError } from "./errors.js";
 import type {
   ApiErrorResponse,
   AuthResponse,
+  GetMenuByIdRequest,
+  GetMenuByIdResponse,
+  GetMenuRequest,
+  GetMenuResponse,
   GetOrganizationsRequest,
   GetOrganizationsResponse,
   IikoClientOptions,
@@ -172,6 +176,52 @@ export class IikoClient {
     request: GetOrganizationsRequest = {}
   ): Promise<GetOrganizationsResponse> {
     return this.post<GetOrganizationsResponse>("/api/1/organizations", request);
+  }
+
+  // ==========================================================================
+  // Menu API
+  // ==========================================================================
+
+  /**
+   * Get list of external menus for organizations
+   *
+   * @param request - Request parameters with organization IDs
+   * @returns List of external menus and price categories
+   *
+   * @example
+   * ```typescript
+   * const { externalMenus } = await client.getMenu({
+   *   organizationIds: ['9b87a04a-5e2d-43d0-9206-ccac3ecd59b0'],
+   * });
+   * ```
+   */
+  public async getMenu(request: GetMenuRequest): Promise<GetMenuResponse> {
+    return this.post<GetMenuResponse>("/api/2/menu", request);
+  }
+
+  /**
+   * Get detailed menu information by ID
+   *
+   * @param request - Request parameters with external menu ID and organization IDs
+   * @returns Detailed menu with categories, items, prices, and nutritional information
+   *
+   * @example
+   * ```typescript
+   * const menu = await client.getMenuById({
+   *   externalMenuId: '67964',
+   *   organizationIds: ['9b87a04a-5e2d-43d0-9206-ccac3ecd59b0'],
+   * });
+   *
+   * // Access menu categories and items
+   * menu.itemCategories.forEach(category => {
+   *   console.log(category.name, category.items.length);
+   * });
+   * ```
+   */
+  public async getMenuById(
+    request: GetMenuByIdRequest
+  ): Promise<GetMenuByIdResponse> {
+    return this.post<GetMenuByIdResponse>("/api/2/menu/by_id", request);
   }
 
   /**
