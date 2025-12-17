@@ -134,12 +134,10 @@ describe("IikoClient", () => {
     });
 
     it("should return token after authentication", async () => {
-      nock(BASE_URL)
-        .post("/api/1/access_token")
-        .reply(200, {
-          correlationId: MOCK_CORRELATION_ID,
-          token: MOCK_ACCESS_TOKEN,
-        });
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
 
       const client = new IikoClient(MOCK_API_KEY);
       await client.authenticate();
@@ -166,12 +164,10 @@ describe("IikoClient", () => {
         ],
       };
 
-      nock(BASE_URL)
-        .post("/api/1/access_token")
-        .reply(200, {
-          correlationId: MOCK_CORRELATION_ID,
-          token: MOCK_ACCESS_TOKEN,
-        });
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
 
       nock(BASE_URL)
         .post("/api/1/organizations", {})
@@ -194,12 +190,10 @@ describe("IikoClient", () => {
         organizations: [{ id: "org-1", name: "Test Org" }],
       };
 
-      nock(BASE_URL)
-        .post("/api/1/access_token")
-        .reply(200, {
-          correlationId: MOCK_CORRELATION_ID,
-          token: MOCK_ACCESS_TOKEN,
-        });
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
 
       nock(BASE_URL)
         .post("/api/1/organizations", {
@@ -219,6 +213,288 @@ describe("IikoClient", () => {
       });
 
       expect(result.organizations).toHaveLength(1);
+    });
+  });
+
+  describe("getMenu", () => {
+    it("should throw if not authenticated", async () => {
+      const client = new IikoClient(MOCK_API_KEY);
+
+      await expect(
+        client.getMenu({ organizationIds: ["org-1"] })
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    it("should fetch menus successfully", async () => {
+      const mockResponse = {
+        correlationId: "test-correlation-id",
+        externalMenus: [
+          { id: "67964", name: "ZazaGo" },
+          { id: "67965", name: "Menu 2" },
+        ],
+        priceCategories: [],
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
+
+      nock(BASE_URL)
+        .post("/api/2/menu", {
+          organizationIds: ["9b87a04a-5e2d-43d0-9206-ccac3ecd59b0"],
+        })
+        .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(MOCK_API_KEY);
+      await client.authenticate();
+
+      const result = await client.getMenu({
+        organizationIds: ["9b87a04a-5e2d-43d0-9206-ccac3ecd59b0"],
+      });
+
+      expect(result.correlationId).toBe("test-correlation-id");
+      expect(result.externalMenus).toHaveLength(2);
+      expect(result.externalMenus[0]?.name).toBe("ZazaGo");
+      expect(result.priceCategories).toHaveLength(0);
+    });
+
+    it("should return price categories when available", async () => {
+      const mockResponse = {
+        correlationId: "test-id",
+        externalMenus: [{ id: "123", name: "Main Menu" }],
+        priceCategories: [
+          { id: "cat-1", name: "Standard" },
+          { id: "cat-2", name: "Premium" },
+        ],
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
+
+      nock(BASE_URL)
+        .post("/api/2/menu", { organizationIds: ["org-1"] })
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(MOCK_API_KEY);
+      await client.authenticate();
+
+      const result = await client.getMenu({ organizationIds: ["org-1"] });
+
+      expect(result.priceCategories).toHaveLength(2);
+      expect(result.priceCategories[0]?.name).toBe("Standard");
+    });
+  });
+
+  describe("getMenuById", () => {
+    it("should throw if not authenticated", async () => {
+      const client = new IikoClient(MOCK_API_KEY);
+
+      await expect(
+        client.getMenuById({
+          externalMenuId: "67964",
+          organizationIds: ["org-1"],
+        })
+      ).rejects.toThrow("Not authenticated");
+    });
+
+    it("should fetch menu by ID successfully", async () => {
+      const mockResponse = {
+        productCategories: [
+          { id: "cat-1", name: "Итальянская", isDeleted: false },
+        ],
+        customerTagGroups: [],
+        revision: 1765870575,
+        formatVersion: 2,
+        id: 67964,
+        name: "ZazaGo",
+        description: "",
+        buttonImageUrl: null,
+        intervals: [],
+        itemCategories: [
+          {
+            id: "8b25dd45-2ccd-416c-be7f-145905b4f594",
+            name: "Основные блюда",
+            description: "",
+            buttonImageUrl: null,
+            headerImageUrl: null,
+            iikoGroupId: "b6f0a8cb-778e-1a3b-019b-13514b40a3c4",
+            items: [
+              {
+                sku: "00007",
+                name: "Спагетти Карбонара",
+                description: "",
+                allergens: [],
+                tags: [],
+                labels: [],
+                itemSizes: [
+                  {
+                    sku: "00007",
+                    sizeCode: null,
+                    sizeName: "",
+                    isDefault: true,
+                    portionWeightGrams: 1000.0,
+                    itemModifierGroups: [],
+                    sizeId: null,
+                    nutritionPerHundredGrams: {
+                      fats: 0.0,
+                      proteins: 0.0,
+                      carbs: 0.0,
+                      energy: 0.0,
+                      organizations: [],
+                      saturatedFattyAcid: null,
+                      salt: null,
+                      sugar: null,
+                    },
+                    prices: [
+                      {
+                        organizationId: "9b87a04a-5e2d-43d0-9206-ccac3ecd59b0",
+                        price: 3000.0,
+                      },
+                    ],
+                    nutritions: [],
+                    isHidden: false,
+                    measureUnitType: "GRAM",
+                    buttonImageUrl: null,
+                  },
+                ],
+                itemId: "54b328bc-e693-4959-89da-69bdf95f92ec",
+                modifierSchemaId: null,
+                taxCategory: null,
+                modifierSchemaName: "",
+                type: "DISH",
+                canBeDivided: false,
+                canSetOpenPrice: false,
+                useBalanceForSell: false,
+                measureUnit: "",
+                productCategoryId: "cat-1",
+                customerTagGroups: [],
+                paymentSubject: null,
+                paymentSubjectCode: null,
+                outerEanCode: null,
+                isMarked: false,
+                isHidden: false,
+                barcodes: [],
+                orderItemType: "Product",
+              },
+            ],
+            scheduleId: null,
+            scheduleName: null,
+            schedules: [],
+            isHidden: false,
+            tags: [],
+            labels: [],
+          },
+        ],
+        comboCategories: [],
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
+
+      nock(BASE_URL)
+        .post("/api/2/menu/by_id", {
+          externalMenuId: "67964",
+          organizationIds: ["9b87a04a-5e2d-43d0-9206-ccac3ecd59b0"],
+        })
+        .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(MOCK_API_KEY);
+      await client.authenticate();
+
+      const result = await client.getMenuById({
+        externalMenuId: "67964",
+        organizationIds: ["9b87a04a-5e2d-43d0-9206-ccac3ecd59b0"],
+      });
+
+      expect(result.id).toBe(67964);
+      expect(result.name).toBe("ZazaGo");
+      expect(result.productCategories).toHaveLength(1);
+      expect(result.itemCategories).toHaveLength(1);
+      expect(result.itemCategories[0]?.name).toBe("Основные блюда");
+      expect(result.itemCategories[0]?.items).toHaveLength(1);
+      expect(result.itemCategories[0]?.items[0]?.name).toBe(
+        "Спагетти Карбонара"
+      );
+      expect(
+        result.itemCategories[0]?.items[0]?.itemSizes[0]?.prices[0]?.price
+      ).toBe(3000.0);
+    });
+
+    it("should return menu with multiple categories", async () => {
+      const mockResponse = {
+        productCategories: [],
+        customerTagGroups: [],
+        revision: 123,
+        formatVersion: 2,
+        id: 12345,
+        name: "Test Menu",
+        description: "Test description",
+        buttonImageUrl: null,
+        intervals: [],
+        itemCategories: [
+          {
+            id: "cat-1",
+            name: "Category 1",
+            description: "",
+            buttonImageUrl: null,
+            headerImageUrl: null,
+            iikoGroupId: "",
+            items: [],
+            scheduleId: null,
+            scheduleName: null,
+            schedules: [],
+            isHidden: false,
+            tags: [],
+            labels: [],
+          },
+          {
+            id: "cat-2",
+            name: "Category 2",
+            description: "",
+            buttonImageUrl: null,
+            headerImageUrl: null,
+            iikoGroupId: "",
+            items: [],
+            scheduleId: null,
+            scheduleName: null,
+            schedules: [],
+            isHidden: false,
+            tags: [],
+            labels: [],
+          },
+        ],
+        comboCategories: [],
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
+
+      nock(BASE_URL)
+        .post("/api/2/menu/by_id", {
+          externalMenuId: "12345",
+          organizationIds: ["org-1"],
+        })
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(MOCK_API_KEY);
+      await client.authenticate();
+
+      const result = await client.getMenuById({
+        externalMenuId: "12345",
+        organizationIds: ["org-1"],
+      });
+
+      expect(result.itemCategories).toHaveLength(2);
+      expect(result.description).toBe("Test description");
     });
   });
 });
