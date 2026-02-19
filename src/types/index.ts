@@ -11,3 +11,12 @@ export type {
   GetOrganizationsResponse,
   Organization,
 } from "./organizations.js";
+
+// Terminal groups
+export type {
+  GetTerminalGroupsRequest,
+  GetTerminalGroupsResponse,
+  TerminalGroupExternalDataItem,
+  TerminalGroupItem,
+  TerminalGroupOrganizationGroup,
+} from "./terminal-groups.js";

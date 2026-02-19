@@ -16,8 +16,8 @@ import { IikoClient } from "iiko-api";
 // Create a client instance with your API key
 const client = new IikoClient("your-api-key");
 
-// Authenticate to get an access token
-await client.authenticate();
+// Token is requested and cached automatically on first API call
+const { organizations } = await client.getOrganizations();
 
 // Check authentication status
 console.log(client.isAuthenticated); // true
@@ -48,7 +48,7 @@ import {
 } from "iiko-api";
 
 try {
-  await client.authenticate();
+  await client.getOrganizations();
 } catch (error) {
   if (error instanceof IikoAuthError) {
     console.error("Authentication failed:", error.message);
@@ -59,6 +59,21 @@ try {
   }
 }
 ```
+
+### Demo script
+
+A small script that creates a client and calls `getOrganizations()`:
+
+```bash
+# Set API key (or add IIKO_API_KEY to .env)
+export IIKO_API_KEY=your-api-key
+
+# Build and run
+npm run build
+npm run run:organizations
+```
+
+Optional: `IIKO_BASE_URL` to override the API base URL.
 
 ## API Reference
 
@@ -72,8 +87,7 @@ new IikoClient(apiKey: string, options?: IikoClientOptions)
 
 #### Methods
 
-- `authenticate(): Promise<AuthResponse>` - Authenticate and obtain access token
-- `isAuthenticated(): boolean` - Check if client has a valid token
+- `isAuthenticated`: boolean - Whether the client has a cached token
 - `getAccessToken(): string | null` - Get the current access token
 
 ### Error Classes

@@ -50,7 +50,7 @@ describe("IikoClient", () => {
   });
 
   describe("authentication", () => {
-    it("should authenticate successfully and store token", async () => {
+    it("should request and cache token on first API call", async () => {
       nock(BASE_URL)
         .post("/api/1/access_token", { apiLogin: MOCK_API_KEY })
         .reply(200, {
@@ -58,14 +58,17 @@ describe("IikoClient", () => {
           token: MOCK_ACCESS_TOKEN,
         });
 
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
       const client = new IikoClient(MOCK_API_KEY);
 
       expect(client.isAuthenticated).toBe(false);
 
-      const result = await client.authenticate();
+      await client.getOrganizations();
 
-      expect(result.token).toBe(MOCK_ACCESS_TOKEN);
-      expect(result.correlationId).toBe(MOCK_CORRELATION_ID);
       expect(client.isAuthenticated).toBe(true);
       expect(client.getAccessToken()).toBe(MOCK_ACCESS_TOKEN);
     });
@@ -77,7 +80,7 @@ describe("IikoClient", () => {
 
       const client = new IikoClient(MOCK_API_KEY);
 
-      await expect(client.authenticate()).rejects.toThrow(IikoAuthError);
+      await expect(client.getOrganizations()).rejects.toThrow(IikoAuthError);
     });
 
     it("should throw IikoRateLimitError on 429 response", async () => {
@@ -92,7 +95,7 @@ describe("IikoClient", () => {
       const client = new IikoClient(MOCK_API_KEY);
 
       try {
-        await client.authenticate();
+        await client.getOrganizations();
         fail("Expected IikoRateLimitError to be thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(IikoRateLimitError);
@@ -107,54 +110,67 @@ describe("IikoClient", () => {
 
       const client = new IikoClient(MOCK_API_KEY);
 
-      await expect(client.authenticate()).rejects.toThrow(IikoApiError);
+      await expect(client.getOrganizations()).rejects.toThrow(IikoApiError);
     });
   });
 
   describe("isAuthenticated", () => {
-    it("should return false before authentication", () => {
+    it("should return false before any API call", () => {
       const client = new IikoClient(MOCK_API_KEY);
       expect(client.isAuthenticated).toBe(false);
     });
 
-    it("should return true after successful authentication", async () => {
-      nock(BASE_URL).post("/api/1/access_token").reply(200, MOCK_ACCESS_TOKEN);
-
-      const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
-
-      expect(client.isAuthenticated).toBe(true);
-    });
-  });
-
-  describe("getAccessToken", () => {
-    it("should return null before authentication", () => {
-      const client = new IikoClient(MOCK_API_KEY);
-      expect(client.getAccessToken()).toBeNull();
-    });
-
-    it("should return token after authentication", async () => {
+    it("should return true after first successful API call", async () => {
       nock(BASE_URL)
         .post("/api/1/access_token")
         .reply(200, {
           correlationId: MOCK_CORRELATION_ID,
           token: MOCK_ACCESS_TOKEN,
         });
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
+
+      expect(client.isAuthenticated).toBe(true);
+    });
+  });
+
+  describe("getAccessToken", () => {
+    it("should return null before any API call", () => {
+      const client = new IikoClient(MOCK_API_KEY);
+      expect(client.getAccessToken()).toBeNull();
+    });
+
+    it("should return token after first API call", async () => {
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
+      const client = new IikoClient(MOCK_API_KEY);
+      await client.getOrganizations();
 
       expect(client.getAccessToken()).toBe(MOCK_ACCESS_TOKEN);
     });
   });
 
   describe("getOrganizations", () => {
-    it("should throw if not authenticated", async () => {
+    it("should throw when token is missing and auth returns 401", async () => {
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(401, { message: "Invalid API key" });
+
       const client = new IikoClient(MOCK_API_KEY);
 
-      await expect(client.getOrganizations()).rejects.toThrow(
-        "Not authenticated"
-      );
+      await expect(client.getOrganizations()).rejects.toThrow(IikoAuthError);
     });
 
     it("should fetch organizations successfully", async () => {
@@ -179,7 +195,6 @@ describe("IikoClient", () => {
         .reply(200, mockResponse);
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
 
       const result = await client.getOrganizations();
 
@@ -210,7 +225,6 @@ describe("IikoClient", () => {
         .reply(200, mockResponse);
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
 
       const result = await client.getOrganizations({
         organizationIds: ["org-1"],

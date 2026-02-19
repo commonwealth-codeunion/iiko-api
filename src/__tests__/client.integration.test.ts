@@ -26,25 +26,18 @@ describeIntegration("IikoClient Integration Tests", () => {
   });
 
   describe("authentication", () => {
-    it("should authenticate with real API key", async () => {
-      const result = await client.authenticate();
+    it("should request and cache token on first API call", async () => {
+      const result = await client.getOrganizations();
 
-      expect(result.token).toBeDefined();
-      expect(typeof result.token).toBe("string");
-      expect(result.token.length).toBeGreaterThan(0);
       expect(result.correlationId).toBeDefined();
-      expect(typeof result.correlationId).toBe("string");
       expect(client.isAuthenticated).toBe(true);
+      expect(client.getAccessToken()).toBeDefined();
+      expect(typeof client.getAccessToken()).toBe("string");
+      expect(client.getAccessToken()!.length).toBeGreaterThan(0);
     });
   });
 
   describe("organizations", () => {
-    beforeAll(async () => {
-      if (!client.isAuthenticated) {
-        await client.authenticate();
-      }
-    });
-
     it("should fetch organizations from real API", async () => {
       const result = await client.getOrganizations();
 

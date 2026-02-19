@@ -10,6 +10,12 @@ export type {
   GetOrganizationsResponse,
   IikoClientOptions,
   Organization,
+  // Terminal groups
+  GetTerminalGroupsRequest,
+  GetTerminalGroupsResponse,
+  TerminalGroupExternalDataItem,
+  TerminalGroupItem,
+  TerminalGroupOrganizationGroup,
 } from "./types/index.js";
 
 // Errors

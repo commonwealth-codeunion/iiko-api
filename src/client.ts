@@ -5,6 +5,8 @@ import type {
   AuthResponse,
   GetOrganizationsRequest,
   GetOrganizationsResponse,
+  GetTerminalGroupsRequest,
+  GetTerminalGroupsResponse,
   IikoClientOptions,
 } from "./types/index.js";
 
@@ -23,8 +25,8 @@ const DEFAULT_TIMEOUT = 30000;
  * @example
  * ```typescript
  * const client = new IikoClient("your-api-key");
- * await client.authenticate();
- * // Now you can use other API methods
+ * // Token is requested and cached on first get/post
+ * const { organizations } = await client.getOrganizations();
  * ```
  */
 export class IikoClient {
@@ -56,22 +58,22 @@ export class IikoClient {
     // Add response interceptor for error handling
     this.httpClient.interceptors.response.use(
       (response) => response,
-      (error: AxiosError<ApiErrorResponse>) => this.handleError(error)
+      (error: AxiosError<ApiErrorResponse>) => this.handleError(error),
     );
   }
 
   /**
-   * Authenticate with the iiko API and obtain an access token
+   * Request access token from the iiko API and cache it
    *
    * @returns The authentication response containing the token
    * @throws {IikoAuthError} If authentication fails
    */
-  public async authenticate(): Promise<AuthResponse> {
+  private async authenticate(): Promise<AuthResponse> {
     const response = await this.httpClient.post<AuthResponse>(
       "/api/1/access_token",
       {
         apiLogin: this.apiKey,
-      }
+      },
     );
 
     this.accessToken = response.data.token;
@@ -98,42 +100,62 @@ export class IikoClient {
   }
 
   /**
-   * Make an authenticated GET request to the API
+   * Make an authenticated GET request to the API.
+   * On 401, refreshes the token once and retries; if it fails again, throws.
    *
    * @param endpoint - The API endpoint path
    * @returns The response data
    */
   protected async get<T>(endpoint: string): Promise<T> {
-    this.ensureAuthenticated();
-    const response = await this.httpClient.get<T>(endpoint, {
-      headers: this.getAuthHeaders(),
+    await this.ensureTokenCached();
+    return this.executeWithAuthRetry(async () => {
+      const response = await this.httpClient.get<T>(endpoint, {
+        headers: this.getAuthHeaders(),
+      });
+      return response.data;
     });
-    return response.data;
   }
 
   /**
-   * Make an authenticated POST request to the API
+   * Make an authenticated POST request to the API.
+   * On 401, refreshes the token once and retries; if it fails again, throws.
    *
    * @param endpoint - The API endpoint path
    * @param data - The request body
    * @returns The response data
    */
   protected async post<T>(endpoint: string, data?: unknown): Promise<T> {
-    this.ensureAuthenticated();
-    const response = await this.httpClient.post<T>(endpoint, data, {
-      headers: this.getAuthHeaders(),
+    await this.ensureTokenCached();
+    return this.executeWithAuthRetry(async () => {
+      const response = await this.httpClient.post<T>(endpoint, data, {
+        headers: this.getAuthHeaders(),
+      });
+      return response.data;
     });
-    return response.data;
   }
 
   /**
-   * Ensure the client is authenticated before making API calls
-   *
-   * @throws {IikoAuthError} If not authenticated
+   * Executes a request; on IikoAuthError, re-authenticates once and retries.
+   * If the retry also fails with auth error, the error is rethrown.
    */
-  private ensureAuthenticated(): void {
+  private async executeWithAuthRetry<T>(request: () => Promise<T>): Promise<T> {
+    try {
+      return await request();
+    } catch (error) {
+      if (!(error instanceof IikoAuthError)) {
+        throw error;
+      }
+      await this.authenticate();
+      return await request();
+    }
+  }
+
+  /**
+   * Ensure access token is present; request and cache it if missing
+   */
+  private async ensureTokenCached(): Promise<void> {
     if (!this.accessToken) {
-      throw new IikoAuthError("Not authenticated. Call authenticate() first.");
+      await this.authenticate();
     }
   }
 
@@ -144,6 +166,33 @@ export class IikoClient {
     return {
       Authorization: `Bearer ${this.accessToken}`,
     };
+  }
+
+  /**
+   * Handle API errors and convert them to typed errors
+   */
+  private handleError(error: AxiosError<ApiErrorResponse>): never {
+    const status = error.response?.status ?? 500;
+    const data = error.response?.data;
+    const message =
+      data?.message ?? error.message ?? "An unknown error occurred";
+    const url = error.config?.url;
+
+    if (status === 401) {
+      throw new IikoAuthError(message, data, url);
+    }
+
+    if (status === 429) {
+      const retryAfter = error.response?.headers["retry-after"];
+      throw new IikoRateLimitError(
+        message,
+        retryAfter ? parseInt(retryAfter, 10) : undefined,
+        data,
+        url,
+      );
+    }
+
+    throw new IikoApiError(message, status, data?.errorCode, data, url);
   }
 
   // ==========================================================================
@@ -169,33 +218,27 @@ export class IikoClient {
    * ```
    */
   public async getOrganizations(
-    request: GetOrganizationsRequest = {}
+    request: GetOrganizationsRequest = {},
   ): Promise<GetOrganizationsResponse> {
     return this.post<GetOrganizationsResponse>("/api/1/organizations", request);
   }
 
+  // ==========================================================================
+  // Terminal groups API
+  // ==========================================================================
+
   /**
-   * Handle API errors and convert them to typed errors
+   * Get terminal groups for the given organizations
+   *
+   * @param request - Request with organization IDs (required) and optional filters
+   * @returns Terminal groups and terminal groups in sleep
    */
-  private handleError(error: AxiosError<ApiErrorResponse>): never {
-    const status = error.response?.status ?? 500;
-    const data = error.response?.data;
-    const message =
-      data?.message ?? error.message ?? "An unknown error occurred";
-
-    if (status === 401) {
-      throw new IikoAuthError(message, data);
-    }
-
-    if (status === 429) {
-      const retryAfter = error.response?.headers["retry-after"];
-      throw new IikoRateLimitError(
-        message,
-        retryAfter ? parseInt(retryAfter, 10) : undefined,
-        data
-      );
-    }
-
-    throw new IikoApiError(message, status, data?.errorCode, data);
+  public async getTerminalGroups(
+    request: GetTerminalGroupsRequest,
+  ): Promise<GetTerminalGroupsResponse> {
+    return this.post<GetTerminalGroupsResponse>(
+      "/api/1/terminal_groups",
+      request,
+    );
   }
 }
