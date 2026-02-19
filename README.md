@@ -19,6 +19,12 @@ const client = new IikoClient("your-api-key");
 // Token is requested and cached automatically on first API call
 const { organizations } = await client.getOrganizations();
 
+// Get nomenclature (menu) for organization
+const { products, groups, revision } = await client.getNomenclature({
+  organizationId: organizations[0]!.id,
+  startRevision: 0, // use revision from response for incremental updates
+});
+
 // Check authentication status
 console.log(client.isAuthenticated); // true
 
@@ -89,6 +95,11 @@ new IikoClient(apiKey: string, options?: IikoClientOptions)
 
 - `isAuthenticated`: boolean - Whether the client has a cached token
 - `getAccessToken(): string | null` - Get the current access token
+- `getOrganizations(request?)` - Get list of organizations
+- `getMenu(request)` - Get external menus with price categories
+- `getMenuById(request)` - Get detailed menu by external menu ID
+- `getNomenclature(request)` - Get nomenclature (groups, products, sizes) for organization
+- `getTerminalGroups(request)` - Get terminal groups for organizations
 
 ### Error Classes
 

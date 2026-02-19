@@ -7,6 +7,8 @@ import type {
   GetMenuByIdResponse,
   GetMenuRequest,
   GetMenuResponse,
+  GetNomenclatureRequest,
+  GetNomenclatureResponse,
   GetOrganizationsRequest,
   GetOrganizationsResponse,
   GetTerminalGroupsRequest,
@@ -271,6 +273,29 @@ export class IikoClient {
     request: GetMenuByIdRequest
   ): Promise<GetMenuByIdResponse> {
     return this.post<GetMenuByIdResponse>("/api/2/menu/by_id", request);
+  }
+
+  /**
+   * Get nomenclature (menu) for organization
+   *
+   * Returns groups, product categories, products (dishes, goods, modifiers), and sizes.
+   * Use startRevision for incremental updates: pass 0 for first request, then use revision from response.
+   *
+   * @param request - organizationId (required) and optional startRevision
+   * @returns Nomenclature with groups, productCategories, products, sizes, and revision
+   *
+   * @example
+   * ```typescript
+   * const { products, groups, revision } = await client.getNomenclature({
+   *   organizationId: '9b87a04a-5e2d-43d0-9206-ccac3ecd59b0',
+   *   startRevision: 0,
+   * });
+   * ```
+   */
+  public async getNomenclature(
+    request: GetNomenclatureRequest
+  ): Promise<GetNomenclatureResponse> {
+    return this.post<GetNomenclatureResponse>("/api/1/nomenclature", request);
   }
 
   /**

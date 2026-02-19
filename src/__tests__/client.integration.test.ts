@@ -66,7 +66,7 @@ describeIntegration("IikoClient Integration Tests", () => {
 
     beforeAll(async () => {
       if (!client.isAuthenticated) {
-        await client.authenticate();
+        await client.getOrganizations();
       }
 
       // Get an organization ID to use for menu requests

@@ -40,3 +40,20 @@ export type {
   ProductCategory,
   Schedule,
 } from "./menu.js";
+
+// Nomenclature
+export type {
+  GetNomenclatureRequest,
+  GetNomenclatureResponse,
+  NomenclatureChildModifier,
+  NomenclatureGroup,
+  NomenclatureGroupModifier,
+  NomenclatureModifier,
+  NomenclatureOrderItemType,
+  NomenclatureProduct,
+  NomenclatureProductCategory,
+  NomenclatureProductType,
+  NomenclatureSize,
+  NomenclatureSizePrice,
+  NomenclatureSizePriceInfo,
+} from "./nomenclature.js";

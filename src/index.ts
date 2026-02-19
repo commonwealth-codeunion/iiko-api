@@ -16,6 +16,14 @@ export type {
   TerminalGroupExternalDataItem,
   TerminalGroupItem,
   TerminalGroupOrganizationGroup,
+  // Nomenclature
+  GetNomenclatureRequest,
+  GetNomenclatureResponse,
+  NomenclatureGroup,
+  NomenclatureProduct,
+  NomenclatureProductCategory,
+  NomenclatureProductType,
+  NomenclatureSize,
 } from "./types/index.js";
 
 // Errors
