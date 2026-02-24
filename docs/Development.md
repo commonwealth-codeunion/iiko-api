@@ -15,8 +15,14 @@ npm install
 ## Commands
 
 ```bash
-# Run tests
+# Run unit tests (mocked)
 npm test
+
+# Run integration tests (real API)
+IIKO_API_KEY=your-key npm run test:integration
+
+# Run all tests
+npm run test:all
 
 # Run tests in watch mode
 npm run test:watch
@@ -27,6 +33,15 @@ npm run test:coverage
 # Build
 npm run build
 ```
+
+## Integration Tests
+
+Integration tests in `src/__tests__/integration/` run against the real iiko API:
+
+- **api-responses.integration.test.ts** — validates that real API responses match TypeScript interfaces
+- **errors.integration.test.ts** — validates error handling (401, 400, 429, 500)
+
+Run: `IIKO_API_KEY=your-key npm run test:integration` or copy `.env.example` to `.env`.
 
 ## Local Development with npm link
 
@@ -73,6 +88,11 @@ src/
   __tests__/          # Test files
     client.test.ts
     index.test.ts
+    client.integration.test.ts
+    integration/      # Integration tests (real API)
+      api-responses.integration.test.ts
+      errors.integration.test.ts
+      response-validators.ts
   types/              # Type definitions
     common.ts
     index.ts

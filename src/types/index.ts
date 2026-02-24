@@ -12,6 +12,14 @@ export type {
   Organization,
 } from "./organizations.js";
 
+// Terminal groups
+export type {
+  GetTerminalGroupsRequest,
+  GetTerminalGroupsResponse,
+  TerminalGroupExternalDataItem,
+  TerminalGroupItem,
+  TerminalGroupOrganizationGroup,
+} from "./terminal-groups.js";
 // Menu
 export type {
   ComboCategory,
@@ -32,3 +40,20 @@ export type {
   ProductCategory,
   Schedule,
 } from "./menu.js";
+
+// Nomenclature
+export type {
+  GetNomenclatureRequest,
+  GetNomenclatureResponse,
+  NomenclatureChildModifier,
+  NomenclatureGroup,
+  NomenclatureGroupModifier,
+  NomenclatureModifier,
+  NomenclatureOrderItemType,
+  NomenclatureProduct,
+  NomenclatureProductCategory,
+  NomenclatureProductType,
+  NomenclatureSize,
+  NomenclatureSizePrice,
+  NomenclatureSizePriceInfo,
+} from "./nomenclature.js";

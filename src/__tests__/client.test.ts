@@ -50,7 +50,7 @@ describe("IikoClient", () => {
   });
 
   describe("authentication", () => {
-    it("should authenticate successfully and store token", async () => {
+    it("should request and cache token on first API call", async () => {
       nock(BASE_URL)
         .post("/api/1/access_token", { apiLogin: MOCK_API_KEY })
         .reply(200, {
@@ -58,14 +58,17 @@ describe("IikoClient", () => {
           token: MOCK_ACCESS_TOKEN,
         });
 
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
       const client = new IikoClient(MOCK_API_KEY);
 
       expect(client.isAuthenticated).toBe(false);
 
-      const result = await client.authenticate();
+      await client.getOrganizations();
 
-      expect(result.token).toBe(MOCK_ACCESS_TOKEN);
-      expect(result.correlationId).toBe(MOCK_CORRELATION_ID);
       expect(client.isAuthenticated).toBe(true);
       expect(client.getAccessToken()).toBe(MOCK_ACCESS_TOKEN);
     });
@@ -77,7 +80,7 @@ describe("IikoClient", () => {
 
       const client = new IikoClient(MOCK_API_KEY);
 
-      await expect(client.authenticate()).rejects.toThrow(IikoAuthError);
+      await expect(client.getOrganizations()).rejects.toThrow(IikoAuthError);
     });
 
     it("should throw IikoRateLimitError on 429 response", async () => {
@@ -92,7 +95,7 @@ describe("IikoClient", () => {
       const client = new IikoClient(MOCK_API_KEY);
 
       try {
-        await client.authenticate();
+        await client.getOrganizations();
         fail("Expected IikoRateLimitError to be thrown");
       } catch (error) {
         expect(error).toBeInstanceOf(IikoRateLimitError);
@@ -107,52 +110,67 @@ describe("IikoClient", () => {
 
       const client = new IikoClient(MOCK_API_KEY);
 
-      await expect(client.authenticate()).rejects.toThrow(IikoApiError);
+      await expect(client.getOrganizations()).rejects.toThrow(IikoApiError);
     });
   });
 
   describe("isAuthenticated", () => {
-    it("should return false before authentication", () => {
+    it("should return false before any API call", () => {
       const client = new IikoClient(MOCK_API_KEY);
       expect(client.isAuthenticated).toBe(false);
     });
 
-    it("should return true after successful authentication", async () => {
-      nock(BASE_URL).post("/api/1/access_token").reply(200, MOCK_ACCESS_TOKEN);
+    it("should return true after first successful API call", async () => {
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
 
       expect(client.isAuthenticated).toBe(true);
     });
   });
 
   describe("getAccessToken", () => {
-    it("should return null before authentication", () => {
+    it("should return null before any API call", () => {
       const client = new IikoClient(MOCK_API_KEY);
       expect(client.getAccessToken()).toBeNull();
     });
 
-    it("should return token after authentication", async () => {
-      nock(BASE_URL).post("/api/1/access_token").reply(200, {
-        correlationId: MOCK_CORRELATION_ID,
-        token: MOCK_ACCESS_TOKEN,
-      });
+    it("should return token after first API call", async () => {
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(200, {
+          correlationId: MOCK_CORRELATION_ID,
+          token: MOCK_ACCESS_TOKEN,
+        });
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
 
       expect(client.getAccessToken()).toBe(MOCK_ACCESS_TOKEN);
     });
   });
 
   describe("getOrganizations", () => {
-    it("should throw if not authenticated", async () => {
+    it("should throw when token is missing and auth returns 401", async () => {
+      nock(BASE_URL)
+        .post("/api/1/access_token")
+        .reply(401, { message: "Invalid API key" });
+
       const client = new IikoClient(MOCK_API_KEY);
 
-      await expect(client.getOrganizations()).rejects.toThrow(
-        "Not authenticated"
-      );
+      await expect(client.getOrganizations()).rejects.toThrow(IikoAuthError);
     });
 
     it("should fetch organizations successfully", async () => {
@@ -175,7 +193,6 @@ describe("IikoClient", () => {
         .reply(200, mockResponse);
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
 
       const result = await client.getOrganizations();
 
@@ -204,7 +221,6 @@ describe("IikoClient", () => {
         .reply(200, mockResponse);
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
 
       const result = await client.getOrganizations({
         organizationIds: ["org-1"],
@@ -217,14 +233,6 @@ describe("IikoClient", () => {
   });
 
   describe("getMenu", () => {
-    it("should throw if not authenticated", async () => {
-      const client = new IikoClient(MOCK_API_KEY);
-
-      await expect(
-        client.getMenu({ organizationIds: ["org-1"] })
-      ).rejects.toThrow("Not authenticated");
-    });
-
     it("should fetch menus successfully", async () => {
       const mockResponse = {
         correlationId: "test-correlation-id",
@@ -247,8 +255,12 @@ describe("IikoClient", () => {
         .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
         .reply(200, mockResponse);
 
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
 
       const result = await client.getMenu({
         organizationIds: ["9b87a04a-5e2d-43d0-9206-ccac3ecd59b0"],
@@ -276,11 +288,14 @@ describe("IikoClient", () => {
       });
 
       nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+      nock(BASE_URL)
         .post("/api/2/menu", { organizationIds: ["org-1"] })
         .reply(200, mockResponse);
 
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
 
       const result = await client.getMenu({ organizationIds: ["org-1"] });
 
@@ -290,17 +305,6 @@ describe("IikoClient", () => {
   });
 
   describe("getMenuById", () => {
-    it("should throw if not authenticated", async () => {
-      const client = new IikoClient(MOCK_API_KEY);
-
-      await expect(
-        client.getMenuById({
-          externalMenuId: "67964",
-          organizationIds: ["org-1"],
-        })
-      ).rejects.toThrow("Not authenticated");
-    });
-
     it("should fetch menu by ID successfully", async () => {
       const mockResponse = {
         productCategories: [
@@ -405,8 +409,12 @@ describe("IikoClient", () => {
         .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
         .reply(200, mockResponse);
 
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
 
       const result = await client.getMenuById({
         externalMenuId: "67964",
@@ -485,8 +493,12 @@ describe("IikoClient", () => {
         })
         .reply(200, mockResponse);
 
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
       const client = new IikoClient(MOCK_API_KEY);
-      await client.authenticate();
+      await client.getOrganizations();
 
       const result = await client.getMenuById({
         externalMenuId: "12345",
@@ -495,6 +507,119 @@ describe("IikoClient", () => {
 
       expect(result.itemCategories).toHaveLength(2);
       expect(result.description).toBe("Test description");
+    });
+  });
+
+  describe("getNomenclature", () => {
+    it("should fetch nomenclature successfully", async () => {
+      const mockResponse = {
+        correlationId: "nomenclature-correlation-id",
+        groups: [
+          {
+            id: "group-1",
+            code: "G1",
+            name: "Напитки",
+            description: null,
+            additionalInfo: null,
+            tags: [],
+            isDeleted: false,
+            parentGroup: null,
+            order: 0,
+            isIncludedInMenu: true,
+            isGroupModifier: false,
+            imageLinks: [],
+            seoDescription: null,
+            seoText: null,
+            seoKeywords: null,
+            seoTitle: null,
+          },
+        ],
+        productCategories: [
+          { id: "cat-1", name: "Категория", isDeleted: false },
+        ],
+        products: [
+          {
+            id: "prod-1",
+            code: "P1",
+            name: "Капучино",
+            type: "Good",
+            orderItemType: "Product",
+            groupId: "group-1",
+            productCategoryId: "cat-1",
+            modifierSchemaId: null,
+            modifierSchemaName: null,
+            splittable: false,
+            measureUnit: "шт",
+            sizePrices: [],
+            modifiers: [],
+            groupModifiers: [],
+            imageLinks: [],
+            doNotPrintInCheque: false,
+            parentGroup: null,
+            order: 0,
+            fullNameEnglish: null,
+            useBalanceForSell: false,
+            canSetOpenPrice: false,
+            paymentSubject: null,
+            fatAmount: 0,
+            proteinsAmount: 0,
+            carbohydratesAmount: 0,
+            energyAmount: 0,
+            fatFullAmount: 0,
+            proteinsFullAmount: 0,
+            carbohydratesFullAmount: 0,
+            energyFullAmount: 0,
+            weight: 0,
+            description: null,
+            additionalInfo: null,
+            tags: [],
+            isDeleted: false,
+            seoDescription: null,
+            seoText: null,
+            seoKeywords: null,
+            seoTitle: null,
+          },
+        ],
+        sizes: [
+          { id: "size-1", name: "Стандарт", priority: 0, isDefault: true },
+        ],
+        revision: 12345,
+      };
+
+      nock(BASE_URL).post("/api/1/access_token").reply(200, {
+        correlationId: MOCK_CORRELATION_ID,
+        token: MOCK_ACCESS_TOKEN,
+      });
+
+      nock(BASE_URL)
+        .post("/api/1/organizations", {})
+        .reply(200, { correlationId: MOCK_CORRELATION_ID, organizations: [] });
+
+      nock(BASE_URL)
+        .post("/api/1/nomenclature", {
+          organizationId: "9b87a04a-5e2d-43d0-9206-ccac3ecd59b0",
+          startRevision: 0,
+        })
+        .matchHeader("Authorization", `Bearer ${MOCK_ACCESS_TOKEN}`)
+        .reply(200, mockResponse);
+
+      const client = new IikoClient(MOCK_API_KEY);
+      await client.getOrganizations();
+
+      const result = await client.getNomenclature({
+        organizationId: "9b87a04a-5e2d-43d0-9206-ccac3ecd59b0",
+        startRevision: 0,
+      });
+
+      expect(result.correlationId).toBe("nomenclature-correlation-id");
+      expect(result.groups).toHaveLength(1);
+      expect(result.groups[0]?.name).toBe("Напитки");
+      expect(result.productCategories).toHaveLength(1);
+      expect(result.products).toHaveLength(1);
+      expect(result.products[0]?.type).toBe("Good");
+      expect(result.products[0]?.name).toBe("Капучино");
+      expect(result.sizes).toHaveLength(1);
+      expect(result.revision).toBe(12345);
     });
   });
 });

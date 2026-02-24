@@ -19,17 +19,25 @@ export class IikoApiError extends Error {
    */
   public readonly response: ApiErrorResponse | undefined;
 
+  /**
+   * Request URL where the error occurred (from response.config.url)
+   */
+  public readonly url: string | undefined;
+
   constructor(
     message: string,
     statusCode: number,
     errorCode?: string,
-    response?: ApiErrorResponse
+    response?: ApiErrorResponse,
+    url?: string
   ) {
-    super(message);
+    const fullMessage = url ? `${message} (URL: ${url})` : message;
+    super(fullMessage);
     this.name = "IikoApiError";
     this.statusCode = statusCode;
     this.errorCode = errorCode;
     this.response = response;
+    this.url = url;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if (Error.captureStackTrace) {
@@ -42,8 +50,8 @@ export class IikoApiError extends Error {
  * Error thrown when authentication fails
  */
 export class IikoAuthError extends IikoApiError {
-  constructor(message: string, response?: ApiErrorResponse) {
-    super(message, 401, "AUTH_ERROR", response);
+  constructor(message: string, response?: ApiErrorResponse, url?: string) {
+    super(message, 401, "AUTH_ERROR", response, url);
     this.name = "IikoAuthError";
   }
 }
@@ -60,9 +68,10 @@ export class IikoRateLimitError extends IikoApiError {
   constructor(
     message: string,
     retryAfter?: number,
-    response?: ApiErrorResponse
+    response?: ApiErrorResponse,
+    url?: string
   ) {
-    super(message, 429, "RATE_LIMIT", response);
+    super(message, 429, "RATE_LIMIT", response, url);
     this.name = "IikoRateLimitError";
     this.retryAfter = retryAfter;
   }
