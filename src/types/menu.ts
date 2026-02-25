@@ -121,18 +121,72 @@ export interface Nutrition {
  */
 export interface ItemPrice {
   organizationId: string;
-  price: number;
+  price: number | null;
 }
 
 /**
- * Item modifier group
+ * Allergen in API response (can be object, not string)
  */
-export interface ItemModifierGroup {
+export interface Allergen {
   id: string;
+  code: string;
   name: string;
+  isDeleted: boolean;
+}
+
+/**
+ * Quantity restrictions for modifier group/item
+ */
+export interface ModifierRestrictions {
   minQuantity: number;
   maxQuantity: number;
-  items: MenuItem[];
+  freeQuantity: number;
+  byDefault: number;
+  hideIfDefaultQuantity: boolean;
+}
+
+/**
+ * Item inside ItemModifierGroup (modifier) — structure differs from MenuItem
+ */
+export interface ModifierGroupItem {
+  sku: string;
+  name: string;
+  description: string;
+  restrictions: ModifierRestrictions;
+  allergenGroups: unknown[];
+  nutritionPerHundredGrams: Nutrition;
+  portionWeightGrams: number;
+  tags: string[];
+  labels: string[];
+  itemId: string;
+  isHidden: boolean;
+  prices: ItemPrice[];
+  position: number;
+  independentQuantity: boolean;
+  productCategoryId: string | null;
+  customerTagGroups: CustomerTagGroup[];
+  paymentSubject: string | null;
+  outerEanCode: string | null;
+  isMarked: boolean;
+  measureUnitType: string;
+  paymentSubjectCode: string | null;
+  barcodes: string[] | null;
+  buttonImageUrl: string | null;
+}
+
+/**
+ * Item modifier group (structure from API)
+ */
+export interface ItemModifierGroup {
+  name: string;
+  description: string;
+  restrictions: ModifierRestrictions;
+  items: ModifierGroupItem[];
+  canBeDivided: boolean;
+  itemGroupId: string;
+  isHidden: boolean;
+  childModifiersHaveMinMaxRestrictions: boolean;
+  sku: string;
 }
 
 /**
@@ -161,7 +215,8 @@ export interface MenuItem {
   sku: string;
   name: string;
   description: string;
-  allergens: string[];
+  /** API returns array of objects {id, code, name, isDeleted} or empty array */
+  allergens: Allergen[] | string[];
   tags: string[];
   labels: string[];
   itemSizes: ItemSize[];
@@ -181,7 +236,7 @@ export interface MenuItem {
   outerEanCode: string | null;
   isMarked: boolean;
   isHidden: boolean;
-  barcodes: string[];
+  barcodes: string[] | null;
   orderItemType: "Product" | "Compound" | string;
 }
 
